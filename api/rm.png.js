@@ -3,8 +3,8 @@ import { put } from "@vercel/blob";
 
 export default async function handler(req, res) {
   try {
-    const W = parseInt(req.query.w || "600", 10);
-    const H = parseInt(req.query.h || "220", 10);
+  const W = parseInt(req.query.w || "600", 10);
+  const HQuery = req.query.h ? parseInt(String(req.query.h), 10) : undefined;
     const save = String(req.query.save || "0") === "1";
 
     res.setHeader("Content-Type", "image/png");
@@ -17,28 +17,67 @@ export default async function handler(req, res) {
     const data = await fetch(`https://rickandmortyapi.com/api/character/${ids.join(",")}`).then(r => r.json());
     const chars = Array.isArray(data) ? data : [data];
 
+    // Layout: 3 columnas por fila, filas dinámicas.
+    const gap = 10; // margen y separaciones
+    const cols = 3;
+    const cardW = Math.floor((W - gap * (cols + 1)) / cols);
+    const imgH = 120; // alto del área de imagen
+    const footerPad = 50; // alto del área de texto debajo de la imagen
+    const cardH = imgH + footerPad; // alto total de cada tarjeta
+    const rows = Math.max(1, Math.ceil(numChars / cols));
+
+    const headerH = 32; // alto reservado para el título
+    const footerH = 22; // alto reservado para el sello de tiempo
+    const gridTop = headerH + 6; // inicio del grid
+    const gridH = rows * cardH + (rows - 1) * gap;
+    const calcH = gridTop + gridH + gap + footerH; // alto total calculado
+    const H = HQuery && Number.isFinite(HQuery) ? HQuery : calcH;
+
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext("2d");
 
+    // Fondo
     ctx.fillStyle = "#0b0e14"; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#ffffff"; ctx.font = "bold 16px sans-serif";
-    ctx.fillText("¡Feliz cumpleaños!", 10, 22);
 
-    const gap = 10, cardW = Math.floor((W - gap * (numChars + 1)) / numChars), imgH = 120, y = 30;
-    const today = new Date().toISOString().slice(0, 10);
+    // Título
+    ctx.fillStyle = "#ffffff"; ctx.font = "bold 18px sans-serif"; ctx.textBaseline = "top";
+    ctx.fillText("Cumpleañeros de hoy", 10, 10);
 
+    // Fecha de hoy en formato local
+    const today = new Date().toLocaleDateString("es-ES");
+
+    // Tarjetas
     for (let i = 0; i < numChars; i++) {
-      const c = chars[i], x = gap + i * (cardW + gap);
-      ctx.fillStyle = "#101826"; roundRect(ctx, x - 1, y - 1, cardW + 2, imgH + 50, 10); ctx.fill();
-      const img = await loadImage(c.image);
-      ctx.drawImage(img, x, y, cardW, imgH);
-      ctx.fillStyle = "#fff"; ctx.font = "13px sans-serif";
-      ctx.fillText(trunc(c.name, Math.floor(cardW / 7)), x + 6, y + imgH + 18);
-      ctx.fillStyle = "#9fe870";
-      ctx.font = "12px monospace";
-      ctx.fillText("Cumpleaños: " + today, x + 6, y + imgH + 34);
+      const c = chars[i];
+      const col = i % cols; const row = Math.floor(i / cols);
+      const x = gap + col * (cardW + gap);
+      const y = gridTop + row * (cardH + gap);
+
+      // Tarjeta con esquinas redondeadas
+      ctx.fillStyle = "#101826"; roundRect(ctx, x - 1, y - 1, cardW + 2, cardH + 2, 10); ctx.fill();
+
+      // Imagen
+      try {
+        const img = await loadImage(c.image);
+        ctx.drawImage(img, x, y, cardW, imgH);
+      } catch {}
+
+      // Área de texto (ligero overlay para legibilidad)
+      ctx.fillStyle = "#0b0e14"; ctx.globalAlpha = 0.85;
+      roundRect(ctx, x, y + imgH, cardW, footerPad, 10); ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // Nombre
+      ctx.fillStyle = "#ffffff"; ctx.font = "14px sans-serif"; ctx.textBaseline = "top";
+      ctx.fillText(trunc(c.name, Math.floor(cardW / 7)), x + 8, y + imgH + 8);
+
+      // Fecha de cumpleaños (hoy)
+      ctx.fillStyle = "#9fe870"; ctx.font = "12px monospace"; ctx.textBaseline = "top";
+      ctx.fillText("Cumpleaños: " + today, x + 8, y + imgH + 28);
     }
-    ctx.fillStyle = "#95a1b2"; ctx.font = "11px monospace";
+
+    // Sello de generación
+    ctx.fillStyle = "#95a1b2"; ctx.font = "11px monospace"; ctx.textBaseline = "alphabetic";
     ctx.fillText("Generado: " + new Date().toISOString(), 10, H - 8);
 
     const png = canvas.toBuffer("image/png");
