@@ -1,5 +1,32 @@
-import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import { put } from "@vercel/blob";
+
+// Registro de fuentes del sistema para asegurar render de texto
+const FONT_STACK = '"Arial","DejaVu Sans","Liberation Sans","Helvetica","Segoe UI",sans-serif';
+const MONO_STACK = '"Consolas","DejaVu Sans Mono","Liberation Mono",monospace';
+(() => {
+  try {
+    // Lista de fuentes comunes por SO
+    const candidates = [
+      // Windows
+      "C:/Windows/Fonts/arial.ttf",
+      "C:/Windows/Fonts/segoeui.ttf",
+      // Linux
+      "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+      "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+      // macOS
+      "/System/Library/Fonts/Supplemental/Arial.ttf",
+      "/System/Library/Fonts/Supplemental/Helvetica.ttf"
+    ];
+    for (const p of candidates) {
+      try {
+  if (GlobalFonts.registerFromPath(p)) {
+          break;
+        }
+      } catch {}
+    }
+  } catch {}
+})();
 
 export default async function handler(req, res) {
   try {
@@ -39,8 +66,8 @@ export default async function handler(req, res) {
     // Fondo
     ctx.fillStyle = "#0b0e14"; ctx.fillRect(0, 0, W, H);
 
-    // Título
-    ctx.fillStyle = "#ffffff"; ctx.font = "bold 18px sans-serif"; ctx.textBaseline = "top";
+  // Título
+  ctx.fillStyle = "#ffffff"; ctx.font = `bold 18px ${FONT_STACK}`; ctx.textBaseline = "top";
     ctx.fillText("Cumpleañeros de hoy", 10, 10);
 
     // Fecha de hoy en formato local
@@ -68,16 +95,16 @@ export default async function handler(req, res) {
       ctx.globalAlpha = 1;
 
       // Nombre
-      ctx.fillStyle = "#ffffff"; ctx.font = "14px sans-serif"; ctx.textBaseline = "top";
+  ctx.fillStyle = "#ffffff"; ctx.font = `14px ${FONT_STACK}`; ctx.textBaseline = "top";
       ctx.fillText(trunc(c.name, Math.floor(cardW / 7)), x + 8, y + imgH + 8);
 
       // Fecha de cumpleaños (hoy)
-      ctx.fillStyle = "#9fe870"; ctx.font = "12px monospace"; ctx.textBaseline = "top";
+  ctx.fillStyle = "#9fe870"; ctx.font = `12px ${MONO_STACK}`; ctx.textBaseline = "top";
       ctx.fillText("Cumpleaños: " + today, x + 8, y + imgH + 28);
     }
 
     // Sello de generación
-    ctx.fillStyle = "#95a1b2"; ctx.font = "11px monospace"; ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "#95a1b2"; ctx.font = `11px ${MONO_STACK}`; ctx.textBaseline = "alphabetic";
     ctx.fillText("Generado: " + new Date().toISOString(), 10, H - 8);
 
     const png = canvas.toBuffer("image/png");
