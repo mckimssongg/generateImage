@@ -1,0 +1,10 @@
+{
+  "name": "rm-open-time-image",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.60",
+    "@vercel/blob": "^0.24.1"
+  }
+}
