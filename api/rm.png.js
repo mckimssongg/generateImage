@@ -2,31 +2,9 @@ import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import { put } from "@vercel/blob";
 
 // Registro de fuentes del sistema para asegurar render de texto
-const FONT_STACK = '"Arial","DejaVu Sans","Liberation Sans","Helvetica","Segoe UI",sans-serif';
-const MONO_STACK = '"Consolas","DejaVu Sans Mono","Liberation Mono",monospace';
-(() => {
-  try {
-    // Lista de fuentes comunes por SO
-    const candidates = [
-      // Windows
-      "C:/Windows/Fonts/arial.ttf",
-      "C:/Windows/Fonts/segoeui.ttf",
-      // Linux
-      "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-      "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-      // macOS
-      "/System/Library/Fonts/Supplemental/Arial.ttf",
-      "/System/Library/Fonts/Supplemental/Helvetica.ttf"
-    ];
-    for (const p of candidates) {
-      try {
-  if (GlobalFonts.registerFromPath(p)) {
-          break;
-        }
-      } catch {}
-    }
-  } catch {}
-})();
+const buf = Buffer.from(await (await fetch("https://github.com/HikiNarou/DejavuSans-TTF/raw/refs/heads/main/DejaVuSans.ttf")).arrayBuffer());
+GlobalFonts.register(buf, "DejaVu Sans"); // nombre de familia
+const FONT_STACK = "DejaVu Sans";
 
 export default async function handler(req, res) {
   try {
@@ -99,12 +77,12 @@ export default async function handler(req, res) {
       ctx.fillText(trunc(c.name, Math.floor(cardW / 7)), x + 8, y + imgH + 8);
 
       // Fecha de cumpleaños (hoy)
-  ctx.fillStyle = "#9fe870"; ctx.font = `12px ${MONO_STACK}`; ctx.textBaseline = "top";
+  ctx.fillStyle = "#9fe870"; ctx.font = `12px ${FONT_STACK}`; ctx.textBaseline = "top";
       ctx.fillText("Cumpleaños: " + today, x + 8, y + imgH + 28);
     }
 
     // Sello de generación
-  ctx.fillStyle = "#95a1b2"; ctx.font = `11px ${MONO_STACK}`; ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "#95a1b2"; ctx.font = `11px ${FONT_STACK}`; ctx.textBaseline = "alphabetic";
     ctx.fillText("Generado: " + new Date().toISOString(), 10, H - 8);
 
     const png = canvas.toBuffer("image/png");
